@@ -1,0 +1,21 @@
+<joblist>
+  <job>
+    <name>sync-from-git</name>
+    <description>Pull the config repo and reapply jobs, ACLs, resources, and project properties. Does not restart Rundeck, so plugins and rundeck-config.properties changes still require `docker compose restart rundeck`.</description>
+    <group>lab</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: rundeck</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/opt/sync-config.sh</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>

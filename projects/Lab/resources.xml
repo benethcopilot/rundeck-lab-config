@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project>
+  <node name="target"
+        description="Lab target — runs the Flask app managed by myapp-ctl"
+        tags="lab,target,sut"
+        hostname="target"
+        osArch="amd64"
+        osFamily="unix"
+        osName="Debian"
+        username="lab"
+        ssh-key-storage-path="keys/lab/id_rsa"/>
+  <node name="runner"
+        description="Lab test runner — runs Playwright against the target"
+        tags="lab,runner,tests"
+        hostname="runner"
+        osArch="amd64"
+        osFamily="unix"
+        osName="Ubuntu"
+        username="lab"
+        ssh-key-storage-path="keys/lab/id_rsa"/>
+</project>

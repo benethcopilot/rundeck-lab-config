@@ -1,0 +1,21 @@
+<joblist>
+  <job>
+    <name>app-status</name>
+    <description>Report status of the Flask app on the target node. Fails (exit 1) when the app is stopped — by design.</description>
+    <group>app</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: target</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/myapp-ctl status</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>

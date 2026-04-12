@@ -1,0 +1,13 @@
+{
+  "name": "rundeck-lab-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright smoke tests for the Rundeck lab's target app",
+  "scripts": {
+    "test": "playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.0",
+    "typescript": "5.4.5"
+  }
+}

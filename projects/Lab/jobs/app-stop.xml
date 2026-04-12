@@ -1,0 +1,21 @@
+<joblist>
+  <job>
+    <name>app-stop</name>
+    <description>Stop the Flask app on the target node.</description>
+    <group>app</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: target</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/myapp-ctl stop</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>

@@ -1,0 +1,55 @@
+<joblist>
+  <job>
+    <name>lab-smoke</name>
+    <description>End-to-end smoke test: start the target app, run Playwright, stop the app (even on failure). Green means the lab is healthy.</description>
+    <group>lab</group>
+    <loglevel>INFO</loglevel>
+    <executionEnabled>true</executionEnabled>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>true</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: rundeck</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='sequential'>
+      <command>
+        <description>Start the target app</description>
+        <jobref name="app-start" group="app">
+          <nodefilters>
+            <filter>name: target</filter>
+          </nodefilters>
+        </jobref>
+      </command>
+      <command>
+        <description>Brief settle before hitting HTTP</description>
+        <exec>sleep 1</exec>
+      </command>
+      <command>
+        <description>Run Playwright suite</description>
+        <jobref name="run-playwright-tests" group="tests">
+          <nodefilters>
+            <filter>name: runner</filter>
+          </nodefilters>
+        </jobref>
+        <errorhandler keepgoingOnSuccess="true">
+          <description>Stop the target app even if tests failed</description>
+          <jobref name="app-stop" group="app">
+            <nodefilters>
+              <filter>name: target</filter>
+            </nodefilters>
+          </jobref>
+        </errorhandler>
+      </command>
+      <command>
+        <description>Stop the target app (happy path)</description>
+        <jobref name="app-stop" group="app">
+          <nodefilters>
+            <filter>name: target</filter>
+          </nodefilters>
+        </jobref>
+      </command>
+    </sequence>
+  </job>
+</joblist>

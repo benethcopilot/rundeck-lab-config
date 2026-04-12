@@ -1,0 +1,21 @@
+<joblist>
+  <job>
+    <name>run-playwright-tests</name>
+    <description>Run the Playwright test suite against the target node from the runner.</description>
+    <group>tests</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: runner</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/run-tests</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>
