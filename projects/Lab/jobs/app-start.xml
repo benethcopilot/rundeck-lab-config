@@ -1,7 +1,7 @@
 <joblist>
   <job>
     <name>app-start</name>
-    <description>Start the Flask app on the target node. (EDITED)</description>
+    <description>Start the Flask app on the target node.</description>
     <group>app</group>
     <loglevel>INFO</loglevel>
     <dispatch>
