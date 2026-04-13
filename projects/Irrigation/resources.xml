@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project>
+  <node name="irrigation"
+        description="Production irrigation app container - grow tracker"
+        tags="irrigation,prod,grow"
+        hostname="host.docker.internal"
+        ssh-port="2222"
+        osArch="amd64"
+        osFamily="unix"
+        osName="Debian"
+        username="lab"
+        ssh-key-storage-path="keys/lab/id_rsa"/>
+</project>

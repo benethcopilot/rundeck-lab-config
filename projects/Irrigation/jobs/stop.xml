@@ -1,0 +1,21 @@
+<joblist>
+  <job>
+    <name>stop</name>
+    <description>Stop the irrigation app inside the production container.</description>
+    <group>app</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/irrigation-ctl stop</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>

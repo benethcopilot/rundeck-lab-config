@@ -1,0 +1,41 @@
+<joblist>
+  <job>
+    <name>backup-db</name>
+    <description>Snapshot the live SQLite DB to data/backups/ using sqlite3 .backup (safe while app is running).</description>
+    <group>ops</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <script><![CDATA[#!/bin/sh
+set -eu
+DB=/home/lab/app/src/data/irrigation.db
+BACKUP_DIR=/home/lab/app/src/data/backups
+mkdir -p "$BACKUP_DIR"
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+dest="$BACKUP_DIR/irrigation-$ts.db"
+# Python's sqlite3 is always available in the image. Use its backup API for a
+# consistent snapshot even if the app is writing.
+python3 -c "
+import sqlite3, sys
+src = sqlite3.connect('$DB')
+dst = sqlite3.connect('$dest')
+with dst:
+    src.backup(dst)
+src.close(); dst.close()
+"
+echo "backup: $dest ($(stat -c %s "$dest") bytes)"
+# Keep last 10 backups.
+ls -1t "$BACKUP_DIR"/irrigation-*.db 2>/dev/null | tail -n +11 | xargs -r rm -v
+]]></script>
+      </command>
+    </sequence>
+  </job>
+</joblist>

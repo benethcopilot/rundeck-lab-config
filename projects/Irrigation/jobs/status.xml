@@ -1,0 +1,24 @@
+<joblist>
+  <job>
+    <name>status</name>
+    <description>Show whether the irrigation app is running, plus its dashboard /api/status payload.</description>
+    <group>app</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>true</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <sequence keepgoing='true' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/irrigation-ctl status</exec>
+      </command>
+      <command>
+        <exec>curl -sS --max-time 5 http://127.0.0.1:5000/api/status || echo 'dashboard unreachable'</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>

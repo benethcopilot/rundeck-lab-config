@@ -1,0 +1,26 @@
+<joblist>
+  <job>
+    <name>tail-log</name>
+    <description>Print the last N lines of /var/log/irrigation.log (default 200).</description>
+    <group>ops</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <context>
+      <options>
+        <option name='lines' value='200' required='true' description='Number of trailing log lines to show.'/>
+      </options>
+    </context>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>tail -n ${option.lines} /var/log/irrigation.log</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>

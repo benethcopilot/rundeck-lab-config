@@ -1,0 +1,21 @@
+<joblist>
+  <job>
+    <name>restart</name>
+    <description>Restart the irrigation app (stop, then start).</description>
+    <group>app</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/irrigation-ctl restart</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>
