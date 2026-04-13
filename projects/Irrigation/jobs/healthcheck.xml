@@ -1,0 +1,32 @@
+<joblist>
+  <job>
+    <name>healthcheck</name>
+    <description>Probe the app (process + dashboard) and restart it if unhealthy.
+Exits non-zero whenever it had to act, so restart events show as red
+executions in history. See /usr/local/bin/irrigation-healthcheck for
+cooldown and rate-limit logic.</description>
+    <group>ops</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <schedule>
+      <time hour='*' minute='0/2' seconds='0'/>
+      <month month='*'/>
+      <weekday day='*'/>
+      <year year='*'/>
+    </schedule>
+    <scheduleEnabled>true</scheduleEnabled>
+    <executionEnabled>true</executionEnabled>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/irrigation-healthcheck</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>
