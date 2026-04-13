@@ -1,0 +1,93 @@
+<joblist>
+  <job>
+    <name>recent-failures</name>
+    <description>Summarize recent healthcheck + other job failures in the Irrigation project.
+Run this when you come back after a few days away to see what happened — how
+often the app went unhealthy, why, and whether self-healing restarts handled it.
+Defaults to the last 7 days; override with the `days` option.</description>
+    <group>ops</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: rundeck</filter>
+    </nodefilters>
+    <context>
+      <options>
+        <option name='days' value='7' description='Window to summarize, e.g. 1, 7, 30'/>
+      </options>
+    </context>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <script><![CDATA[#!/bin/sh
+# recent-failures — quick status readout for the Irrigation project.
+# Runs on the Rundeck server node and talks to the local API via `rd`.
+set -u
+
+export RD_URL=http://localhost:4440
+export RD_USER=admin
+export RD_PASSWORD=admin
+
+DAYS="${RD_OPTION_DAYS:-7}"
+WINDOW="${DAYS}d"
+
+echo "=== Irrigation health report — last ${DAYS} day(s) ==="
+echo
+
+# --- Healthcheck summary ---------------------------------------------------
+# Every red healthcheck means the probe found the app unhealthy (and either
+# restarted it or was blocked by cooldown/cap). Every green means healthy.
+total=$(rd executions query -p Irrigation -j ops/healthcheck -d "$WINDOW" -m 500 -% '%id' 2>/dev/null | grep -cE '^[0-9]+' || echo 0)
+failed=$(rd executions query -p Irrigation -j ops/healthcheck -d "$WINDOW" -s failed -m 500 -% '%id' 2>/dev/null | grep -cE '^[0-9]+' || echo 0)
+
+if [ "$total" -eq 0 ]; then
+    echo "Healthcheck: no runs in window (scheduler disabled? container down?)"
+else
+    healthy=$((total - failed))
+    pct=$((healthy * 100 / total))
+    echo "Healthcheck: ${total} runs, ${healthy} green, ${failed} red (${pct}% healthy)"
+fi
+echo
+
+# --- Failed healthcheck details -------------------------------------------
+if [ "$failed" -gt 0 ]; then
+    echo "--- Failed healthchecks (most recent first) ---"
+    # Grab id + start time, one per line. %dateStarted is ISO-ish.
+    rd executions query -p Irrigation -j ops/healthcheck -d "$WINDOW" -s failed -m 500 -% '%id|%dateStarted' 2>/dev/null \
+      | while IFS='|' read -r id started; do
+        [ -n "$id" ] || continue
+        # Follow dumps the full log for a completed execution. First 3 lines
+        # are the healthcheck's own reason + action lines.
+        reason=$(rd executions follow -e "$id" 2>/dev/null | head -n 3 | sed 's/^/    /')
+        echo "  #${id}  ${started}"
+        [ -n "$reason" ] && echo "$reason"
+    done
+    echo
+fi
+
+# --- Other failing jobs in the project ------------------------------------
+# Exclude healthcheck (already covered) and this job itself so a failure here
+# doesn't recurse into the summary.
+echo "--- Other failed jobs in window ---"
+other=$(rd executions query -p Irrigation -s failed -d "$WINDOW" -m 500 \
+          -X ops/healthcheck -X ops/recent-failures \
+          -% '%id|%dateStarted|%job.name' 2>/dev/null)
+if [ -z "$other" ]; then
+    echo "  (none)"
+else
+    echo "$other" | while IFS='|' read -r id started job; do
+        [ -n "$id" ] || continue
+        echo "  #${id}  ${started}  ${job}"
+    done
+fi
+echo
+
+echo "=== end of report ==="
+]]></script>
+      </command>
+    </sequence>
+  </job>
+</joblist>
