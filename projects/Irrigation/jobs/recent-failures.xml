@@ -24,7 +24,9 @@ Defaults to the last 7 days; override with the `days` option.</description>
       <command>
         <script><![CDATA[#!/bin/sh
 # recent-failures — quick status readout for the Irrigation project.
-# Runs on the Rundeck server node and talks to the local API via `rd`.
+# Runs on the Rundeck server node and talks to the local API via `rd`
+# (for queries) and curl (for per-execution log output, which `rd
+# executions follow` replaces with a failure banner on failed runs).
 set -u
 
 export RD_URL=http://localhost:4440
@@ -34,14 +36,31 @@ export RD_PASSWORD=admin
 DAYS="${RD_OPTION_DAYS:-7}"
 WINDOW="${DAYS}d"
 
+# Establish an API session once so per-execution log fetches are cheap.
+COOKIE=$(mktemp)
+trap 'rm -f "$COOKIE"' EXIT
+curl -s -c "$COOKIE" -d "j_username=${RD_USER}" -d "j_password=${RD_PASSWORD}" \
+     "${RD_URL}/j_security_check" -o /dev/null
+
+fetch_log() {
+    # First N lines of an execution's output — that's where the healthcheck
+    # printed its reason + action before exiting non-zero.
+    curl -s -b "$COOKIE" "${RD_URL}/api/45/execution/$1/output?format=text" \
+      | grep -v '^Failed: ' \
+      | grep -v '^Execution failed: ' \
+      | head -n 4
+}
+
+RD_QUERY="rd executions query --noninteractive"
+
 echo "=== Irrigation health report — last ${DAYS} day(s) ==="
 echo
 
 # --- Healthcheck summary ---------------------------------------------------
 # Every red healthcheck means the probe found the app unhealthy (and either
 # restarted it or was blocked by cooldown/cap). Every green means healthy.
-total=$(rd executions query -p Irrigation -j ops/healthcheck -d "$WINDOW" -m 500 -% '%id' 2>/dev/null | grep -cE '^[0-9]+' || echo 0)
-failed=$(rd executions query -p Irrigation -j ops/healthcheck -d "$WINDOW" -s failed -m 500 -% '%id' 2>/dev/null | grep -cE '^[0-9]+' || echo 0)
+total=$($RD_QUERY -p Irrigation -j ops/healthcheck -d "$WINDOW" -m 500 -% '%id' 2>/dev/null | grep -cE '^[0-9]+' || echo 0)
+failed=$($RD_QUERY -p Irrigation -j ops/healthcheck -d "$WINDOW" -s failed -m 500 -% '%id' 2>/dev/null | grep -cE '^[0-9]+' || echo 0)
 
 if [ "$total" -eq 0 ]; then
     echo "Healthcheck: no runs in window (scheduler disabled? container down?)"
@@ -55,15 +74,11 @@ echo
 # --- Failed healthcheck details -------------------------------------------
 if [ "$failed" -gt 0 ]; then
     echo "--- Failed healthchecks (most recent first) ---"
-    # Grab id + start time, one per line. %dateStarted is ISO-ish.
-    rd executions query -p Irrigation -j ops/healthcheck -d "$WINDOW" -s failed -m 500 -% '%id|%dateStarted' 2>/dev/null \
+    $RD_QUERY -p Irrigation -j ops/healthcheck -d "$WINDOW" -s failed -m 500 -% '%id|%dateStarted' 2>/dev/null \
       | while IFS='|' read -r id started; do
         [ -n "$id" ] || continue
-        # Follow dumps the full log for a completed execution. First 3 lines
-        # are the healthcheck's own reason + action lines.
-        reason=$(rd executions follow -e "$id" 2>/dev/null | head -n 3 | sed 's/^/    /')
         echo "  #${id}  ${started}"
-        [ -n "$reason" ] && echo "$reason"
+        fetch_log "$id" | sed 's/^/    /'
     done
     echo
 fi
@@ -72,7 +87,7 @@ fi
 # Exclude healthcheck (already covered) and this job itself so a failure here
 # doesn't recurse into the summary.
 echo "--- Other failed jobs in window ---"
-other=$(rd executions query -p Irrigation -s failed -d "$WINDOW" -m 500 \
+other=$($RD_QUERY -p Irrigation -s failed -d "$WINDOW" -m 500 \
           -X ops/healthcheck -X ops/recent-failures \
           -% '%id|%dateStarted|%job.name' 2>/dev/null)
 if [ -z "$other" ]; then
