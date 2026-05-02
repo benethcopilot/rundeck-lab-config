@@ -1,0 +1,33 @@
+<joblist>
+  <job>
+    <name>monitor</name>
+    <description>Deep health check with email alerting.
+Hits /api/health and evaluates all subsystems: Ecowitt data flow, Kasa
+connectivity, engine state, moisture levels, and last watering time.
+Sends an email alert on critical status (with cooldown to avoid spam).
+Exit codes: 0=healthy, 1=degraded, 2=critical.</description>
+    <group>ops</group>
+    <loglevel>INFO</loglevel>
+    <dispatch>
+      <threadcount>1</threadcount>
+      <keepgoing>false</keepgoing>
+      <successOnEmptyNodeFilter>false</successOnEmptyNodeFilter>
+    </dispatch>
+    <nodefilters>
+      <filter>name: irrigation</filter>
+    </nodefilters>
+    <schedule>
+      <time hour='*' minute='1/5' seconds='0'/>
+      <month month='*'/>
+      <weekday day='*'/>
+      <year year='*'/>
+    </schedule>
+    <scheduleEnabled>true</scheduleEnabled>
+    <executionEnabled>true</executionEnabled>
+    <sequence keepgoing='false' strategy='node-first'>
+      <command>
+        <exec>/usr/local/bin/irrigation-monitor</exec>
+      </command>
+    </sequence>
+  </job>
+</joblist>
