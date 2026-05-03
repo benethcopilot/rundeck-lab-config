@@ -35,6 +35,24 @@ echo "backup: $dest ($(stat -c %s "$dest") bytes)"
 # Keep last 10 backups.
 ls -1t "$BACKUP_DIR"/irrigation-*.db 2>/dev/null | tail -n +11 | xargs -r rm -v
 ]]></script>
+        <errorhandler keepgoingOnSuccess='false'>
+          <script><![CDATA[#!/bin/sh
+# Alert on backup failure from the Rundeck node.
+TOKEN=$(rd keys get -p keys/pushover/app_token 2>/dev/null)
+USER_KEY=$(rd keys get -p keys/pushover/user_key 2>/dev/null)
+if [ -n "$TOKEN" ] && [ -n "$USER_KEY" ]; then
+    curl -sf --max-time 10 \
+        -d "token=$TOKEN" \
+        -d "user=$USER_KEY" \
+        -d "title=Irrigation BACKUP FAILED" \
+        -d "message=The ops/backup-db job failed. Check Rundeck execution history for details." \
+        -d "priority=0" \
+        -d "sound=falling" \
+        https://api.pushover.net/1/messages.json
+fi
+]]></script>
+          <scriptargs/>
+        </errorhandler>
       </command>
     </sequence>
   </job>

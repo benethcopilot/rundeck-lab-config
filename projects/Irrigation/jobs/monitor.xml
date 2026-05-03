@@ -1,10 +1,10 @@
 <joblist>
   <job>
     <name>monitor</name>
-    <description>Deep health check with email alerting.
+    <description>Deep health check with Pushover alerting.
 Hits /api/health and evaluates all subsystems: Ecowitt data flow, Kasa
 connectivity, engine state, moisture levels, and last watering time.
-Sends an email alert on critical status (with cooldown to avoid spam).
+Sends a Pushover alert on critical status (with cooldown to avoid spam).
 Exit codes: 0=healthy, 1=degraded, 2=critical.</description>
     <group>ops</group>
     <loglevel>INFO</loglevel>
@@ -27,6 +27,25 @@ Exit codes: 0=healthy, 1=degraded, 2=critical.</description>
     <sequence keepgoing='false' strategy='node-first'>
       <command>
         <exec>/usr/local/bin/irrigation-monitor</exec>
+        <errorhandler keepgoingOnSuccess='false'>
+          <script><![CDATA[#!/bin/sh
+# Dead-man's-switch: if monitor fails (SSH broken, container down),
+# alert directly from the Rundeck node via curl.
+TOKEN=$(rd keys get -p keys/pushover/app_token 2>/dev/null)
+USER_KEY=$(rd keys get -p keys/pushover/user_key 2>/dev/null)
+if [ -n "$TOKEN" ] && [ -n "$USER_KEY" ]; then
+    curl -sf --max-time 10 \
+        -d "token=$TOKEN" \
+        -d "user=$USER_KEY" \
+        -d "title=Irrigation MONITOR FAILED" \
+        -d "message=The ops/monitor job failed — the irrigation container may be unreachable." \
+        -d "priority=1" \
+        -d "sound=siren" \
+        https://api.pushover.net/1/messages.json
+fi
+]]></script>
+          <scriptargs/>
+        </errorhandler>
       </command>
     </sequence>
   </job>
